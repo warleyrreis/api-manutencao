@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="theme-color" content="#1b1e21">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<title>OS — Painel de Manutenção</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #1b1e21;
+    --panel: #232729;
+    --panel-2: #2a2f32;
+    --line: #383d40;
+    --text: #e9e6df;
+    --text-dim: #9aa0a3;
+    --amber: #f0a622;
+    --amber-dim: #7a5a1a;
+    --red: #d6533f;
+    --red-dim: #4a2620;
+    --green: #6ea86a;
+    --green-dim: #24352a;
+    --blue: #5b8fae;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family:'IBM Plex Sans', sans-serif;
+    min-height:100vh;
+    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 1px, transparent 0);
+    background-size: 22px 22px;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  h1,h2,h3,.brand{ font-family:'Oswald', sans-serif; text-transform:uppercase; letter-spacing:0.03em; }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+
+  .app{ display:flex; min-height:100vh; }
+  .sidebar{
+    width:220px; flex-shrink:0;
+    background: linear-gradient(180deg, #202325, #1a1c1e);
+    border-right: 1px solid var(--line);
+    padding: 22px 0;
+    display:flex; flex-direction:column;
+  }
+  .brand{
+    color: var(--amber); font-size: 1.15rem; font-weight:700;
+    padding: 0 20px 20px 20px; border-bottom: 1px solid var(--line);
+    display:flex; align-items:center; gap:10px;
+  }
+  .brand .dot{ width:10px; height:10px; border-radius:50%; background:var(--amber); box-shadow:0 0 8px var(--amber); }
+  .nav{ margin-top: 18px; display:flex; flex-direction:column; gap:2px; }
+  .nav button{
+    all:unset; cursor:pointer;
+    padding: 12px 20px; color: var(--text-dim);
+    font-family:'Oswald', sans-serif; font-size:0.85rem; letter-spacing:0.05em; text-transform:uppercase;
+    border-left: 3px solid transparent;
+  }
+  .nav button:hover{ color: var(--text); background: rgba(255,255,255,0.03); }
+  .nav button.active{ color: var(--amber); border-left-color: var(--amber); background: rgba(240,166,34,0.06); }
+  .sidebar-footer{ margin-top:auto; padding: 16px 20px; color: var(--text-dim); font-size:0.72rem; border-top:1px solid var(--line); }
+  .conn-status{ display:flex; align-items:center; gap:6px; margin-top:6px; }
+  .conn-dot{ width:7px; height:7px; border-radius:50%; background:var(--green); }
+  .conn-dot.off{ background:var(--red); }
+
+  .main{ flex:1; padding: 28px 34px; max-width: 1200px; }
+  .page-title{ font-size:1.6rem; color:var(--text); margin-bottom:4px; }
+  .page-sub{ color:var(--text-dim); font-size:0.88rem; margin-bottom:26px; }
+
+  .stat-grid{ display:grid; grid-template-columns: repeat(4,1fr); gap:14px; margin-bottom:28px; }
+  .stat-card{ background: var(--panel); border:1px solid var(--line); border-radius:4px; padding: 16px 18px; position:relative; overflow:hidden; }
+  .stat-card::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background: var(--accent, var(--amber)); }
+  .stat-num{ font-family:'Oswald',sans-serif; font-size:2rem; font-weight:600; }
+  .stat-label{ color:var(--text-dim); font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; margin-top:2px; }
+
+  .section{ background: var(--panel); border:1px solid var(--line); border-radius:4px; padding:20px; margin-bottom:20px; }
+  .section-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .section-head h2{ font-size:1rem; color:var(--text); }
+
+  table{ width:100%; border-collapse:collapse; font-size:0.86rem; }
+  th{ text-align:left; color:var(--text-dim); font-weight:500; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; padding:8px 10px; border-bottom:1px solid var(--line); }
+  td{ padding:10px 10px; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle; }
+  tr:last-child td{ border-bottom:none; }
+  tr:hover td{ background: rgba(255,255,255,0.02); }
+
+  .badge{ display:inline-block; padding:3px 9px; border-radius:2px; font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; font-family:'IBM Plex Mono',monospace; }
+  .badge.aberta{ background: var(--amber-dim); color: var(--amber); }
+  .badge.andamento{ background: #26394a; color: var(--blue); }
+  .badge.concluida{ background: var(--green-dim); color: var(--green); }
+  .badge.critica{ background: var(--red-dim); color: var(--red); }
+  .badge.alta{ background: var(--amber-dim); color: var(--amber); }
+  .badge.media{ background: #26394a; color: var(--blue); }
+  .badge.baixa{ background: #2c2f31; color: var(--text-dim); }
+
+  .btn{ all:unset; cursor:pointer; font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.04em; font-size:0.78rem; padding: 9px 16px; border-radius:3px; text-align:center; }
+  .btn-primary{ background: var(--amber); color:#1b1e21; font-weight:600; }
+  .btn-primary:hover{ background:#ffb632; }
+  .btn-ghost{ border:1px solid var(--line); color:var(--text-dim); }
+  .btn-ghost:hover{ color:var(--text); border-color:#555; }
+  .btn-danger{ color: var(--red); }
+  .btn-danger:hover{ text-decoration:underline; }
+  .btn-sm{ padding:5px 10px; font-size:0.68rem; }
+  .btn[disabled]{ opacity:0.5; pointer-events:none; }
+
+  .form-grid{ display:grid; grid-template-columns: repeat(2,1fr); gap:12px; margin-bottom:14px; }
+  .form-grid.full{ grid-template-columns: 1fr; }
+  label{ display:block; font-size:0.72rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:5px; }
+  input, select, textarea{ width:100%; background: var(--panel-2); border:1px solid var(--line); color: var(--text); padding: 9px 10px; border-radius:3px; font-family:'IBM Plex Sans',sans-serif; font-size:0.86rem; }
+  input:focus, select:focus, textarea:focus{ outline:2px solid var(--amber); outline-offset:1px; border-color:var(--amber); }
+  textarea{ resize:vertical; min-height:60px; }
+
+  .empty{ color:var(--text-dim); font-size:0.85rem; padding: 30px 0; text-align:center; }
+
+  .tag-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap:16px; }
+  .os-tag{ position:relative; background: var(--panel-2); border:1px solid var(--line); border-radius:4px; padding: 16px 16px 14px 16px; border-left: 4px solid var(--accent, var(--amber)); }
+  .os-tag-head{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
+  .os-id{ font-family:'IBM Plex Mono',monospace; color:var(--text-dim); font-size:0.72rem; }
+  .os-desc{ font-size:0.9rem; margin:6px 0 10px 0; line-height:1.4; }
+  .os-meta{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; font-size:0.72rem; color:var(--text-dim); }
+  .os-meta span{ background: rgba(255,255,255,0.03); padding:3px 8px; border-radius:2px; }
+  .os-actions{ display:flex; gap:8px; margin-top:10px; }
+
+  .filters{ display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .filters select, .filters input{ width:auto; min-width:150px; }
+
+  .toast{ position:fixed; bottom:20px; right:20px; background:var(--panel-2); border:1px solid var(--line); border-left:4px solid var(--amber); padding:12px 16px; border-radius:4px; font-size:0.85rem; max-width:300px; z-index:50; box-shadow:0 6px 20px rgba(0,0,0,0.4); }
+  .toast.error{ border-left-color: var(--red); }
+
+  ::placeholder{ color:#6b7275; }
+  .hidden{ display:none !important; }
+
+  @media (max-width: 900px){
+    .app{ flex-direction:column; padding-bottom: 64px; }
+    .sidebar{ position:fixed; bottom:0; left:0; right:0; top:auto; width:100%; z-index:40;
+      flex-direction:row; padding:0; border-right:none; border-top:1px solid var(--line); background:#1a1c1e; }
+    .brand{ display:none; }
+    .nav{ flex-direction:row; margin-top:0; width:100%; }
+    .nav button{ flex:1; text-align:center; padding:12px 4px; border-left:none; border-top:3px solid transparent; font-size:0.68rem; }
+    .nav button.active{ border-left:none; border-top-color: var(--amber); }
+    .sidebar-footer{ display:none; }
+    .stat-grid{ grid-template-columns: repeat(2,1fr); }
+    .form-grid{ grid-template-columns: 1fr; }
+    .main{ padding:16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="brand"><span class="dot"></span>OS · Manutenção</div>
+    <div class="nav">
+      <button data-page="dashboard" class="active">Painel</button>
+      <button data-page="equipamentos">Equip.</button>
+      <button data-page="ordens">Ordens</button>
+      <button data-page="preventiva">Preventivas</button>
+    </div>
+    <div class="sidebar-footer">
+      Servidor: <span id="conn-status" class="conn-status"><span class="conn-dot" id="conn-dot"></span><span id="conn-text">conectando...</span></span>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <div id="page-dashboard">
+      <div class="page-title">Painel geral</div>
+      <div class="page-sub">Visão rápida do status da manutenção</div>
+
+      <div class="stat-grid">
+        <div class="stat-card" style="--accent:var(--amber)"><div class="stat-num" id="st-abertas">0</div><div class="stat-label">OS em aberto</div></div>
+        <div class="stat-card" style="--accent:var(--blue)"><div class="stat-num" id="st-andamento">0</div><div class="stat-label">Em andamento</div></div>
+        <div class="stat-card" style="--accent:var(--red)"><div class="stat-num" id="st-atrasadas">0</div><div class="stat-label">Atrasadas</div></div>
+        <div class="stat-card" style="--accent:var(--green)"><div class="stat-num" id="st-equip">0</div><div class="stat-label">Equipamentos</div></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><h2>Próximas manutenções</h2></div>
+        <div id="dash-proximas"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><h2>Ordens críticas / alta prioridade</h2></div>
+        <div id="dash-criticas"></div>
+      </div>
+    </div>
+
+    <div id="page-equipamentos" class="hidden">
+      <div class="page-title">Equipamentos</div>
+      <div class="page-sub">Cadastro de máquinas e ativos</div>
+
+      <div class="section">
+        <div class="section-head"><h2>Novo equipamento</h2></div>
+        <div class="form-grid">
+          <div><label>Tag / código</label><input id="eq-tag" placeholder="Ex: INV-014"></div>
+          <div><label>Nome</label><input id="eq-nome" placeholder="Ex: Inversor de frequência linha 2"></div>
+          <div><label>Local</label><input id="eq-local" placeholder="Ex: Setor de corte"></div>
+          <div>
+            <label>Criticidade</label>
+            <select id="eq-criticidade">
+              <option value="baixa">Baixa</option>
+              <option value="media">Média</option>
+              <option value="alta">Alta</option>
+              <option value="critica">Crítica</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btn-add-eq">Adicionar equipamento</button>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><h2>Lista de equipamentos</h2></div>
+        <table>
+          <thead><tr><th>Tag</th><th>Nome</th><th>Local</th><th>Criticidade</th><th></th></tr></thead>
+          <tbody id="eq-tbody"></tbody>
+        </table>
+        <div id="eq-empty" class="empty hidden">Nenhum equipamento cadastrado ainda.</div>
+      </div>
+    </div>
+
+    <div id="page-ordens" class="hidden">
+      <div class="page-title">Ordens de serviço</div>
+      <div class="page-sub">Corretivas e preventivas registradas</div>
+
+      <div class="section">
+        <div class="section-head"><h2>Nova ordem de serviço</h2></div>
+        <div class="form-grid">
+          <div><label>Equipamento</label><select id="os-equip"></select></div>
+          <div>
+            <label>Tipo</label>
+            <select id="os-tipo"><option value="corretiva">Corretiva</option><option value="preventiva">Preventiva</option></select>
+          </div>
+          <div>
+            <label>Prioridade</label>
+            <select id="os-prioridade">
+              <option value="baixa">Baixa</option><option value="media">Média</option><option value="alta">Alta</option><option value="critica">Crítica</option>
+            </select>
+          </div>
+          <div><label>Responsável</label><input id="os-resp" placeholder="Nome do técnico"></div>
+          <div><label>Data prevista</label><input type="date" id="os-data"></div>
+          <div>
+            <label>Status</label>
+            <select id="os-status"><option value="aberta">Aberta</option><option value="andamento">Em andamento</option><option value="concluida">Concluída</option></select>
+          </div>
+        </div>
+        <div class="form-grid full">
+          <div><label>Descrição do problema / serviço</label><textarea id="os-desc" placeholder="Descreva o defeito, sintoma ou serviço a ser realizado"></textarea></div>
+        </div>
+        <button class="btn btn-primary" id="btn-add-os">Abrir ordem de serviço</button>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><h2>Ordens registradas</h2></div>
+        <div class="filters">
+          <select id="filtro-status"><option value="">Todos os status</option><option value="aberta">Aberta</option><option value="andamento">Em andamento</option><option value="concluida">Concluída</option></select>
+          <select id="filtro-tipo"><option value="">Todos os tipos</option><option value="corretiva">Corretiva</option><option value="preventiva">Preventiva</option></select>
+          <input id="filtro-busca" placeholder="Buscar por descrição ou equipamento...">
+        </div>
+        <div id="os-list" class="tag-grid"></div>
+        <div id="os-empty" class="empty hidden">Nenhuma ordem de serviço encontrada.</div>
+      </div>
+    </div>
+
+    <div id="page-preventiva" class="hidden">
+      <div class="page-title">Manutenções preventivas</div>
+      <div class="page-sub">Ordens do tipo preventiva, ordenadas por data prevista</div>
+      <div class="section">
+        <div id="prev-list"></div>
+        <div id="prev-empty" class="empty hidden">Nenhuma preventiva agendada. Cadastre uma OS do tipo "Preventiva".</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let equipamentos = [];
+let ordens = [];
+const API = '/api';
+
+function showToast(msg, isError){
+  const t = document.createElement('div');
+  t.className = 'toast' + (isError ? ' error' : '');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 3500);
+}
+
+async function api(path, options){
+  try{
+    const res = await fetch(API + path, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options
+    });
+    setConn(true);
+    if(!res.ok){
+      const err = await res.json().catch(()=>({error:'Erro no servidor'}));
+      throw new Error(err.error || 'Erro no servidor');
+    }
+    if(res.status === 204) return null;
+    return await res.json();
+  }catch(e){
+    setConn(false);
+    showToast(e.message || 'Não foi possível conectar ao servidor.', true);
+    throw e;
+  }
+}
+
+function setConn(ok){
+  document.getElementById('conn-dot').classList.toggle('off', !ok);
+  document.getElementById('conn-text').textContent = ok ? 'conectado' : 'sem conexão';
+}
+
+function uid(){ return Math.random().toString(36).slice(2,7); }
+
+// ---- Navigation ----
+document.querySelectorAll('.nav button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('[id^="page-"]').forEach(p=>p.classList.add('hidden'));
+    document.getElementById('page-'+btn.dataset.page).classList.remove('hidden');
+    if(btn.dataset.page === 'dashboard') renderDashboard();
+    if(btn.dataset.page === 'preventiva') renderPreventiva();
+  });
+});
+
+// ---- Equipamentos ----
+document.getElementById('btn-add-eq').addEventListener('click', async ()=>{
+  const tag = document.getElementById('eq-tag').value.trim();
+  const nome = document.getElementById('eq-nome').value.trim();
+  const local = document.getElementById('eq-local').value.trim();
+  const criticidade = document.getElementById('eq-criticidade').value;
+  if(!tag || !nome){ showToast('Informe ao menos a tag e o nome do equipamento.', true); return; }
+  try{
+    await api('/equipamentos', { method:'POST', body: JSON.stringify({ tag, nome, local, criticidade }) });
+    document.getElementById('eq-tag').value='';
+    document.getElementById('eq-nome').value='';
+    document.getElementById('eq-local').value='';
+    await refreshAll();
+    showToast('Equipamento adicionado.');
+  }catch(e){}
+});
+
+async function removeEquipamento(id){
+  if(!confirm('Remover este equipamento? As ordens vinculadas continuarão registradas.')) return;
+  try{
+    await api('/equipamentos/'+id, { method:'DELETE' });
+    await refreshAll();
+  }catch(e){}
+}
+
+function renderEquipamentos(){
+  const tbody = document.getElementById('eq-tbody');
+  tbody.innerHTML = '';
+  document.getElementById('eq-empty').classList.toggle('hidden', equipamentos.length>0);
+  equipamentos.forEach(e=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="mono">${escapeHtml(e.tag)}</td>
+      <td>${escapeHtml(e.nome)}</td>
+      <td>${escapeHtml(e.local||'—')}</td>
+      <td><span class="badge ${e.criticidade}">${labelCrit(e.criticidade)}</span></td>
+      <td><button class="btn btn-danger btn-sm" data-remove-eq="${e.id}">Remover</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('[data-remove-eq]').forEach(b=>b.addEventListener('click', ()=>removeEquipamento(b.dataset.removeEq)));
+  document.getElementById('st-equip').textContent = equipamentos.length;
+}
+
+function fillEquipSelect(){
+  const sel = document.getElementById('os-equip');
+  sel.innerHTML = equipamentos.length
+    ? equipamentos.map(e=>`<option value="${e.id}">${escapeHtml(e.tag)} — ${escapeHtml(e.nome)}</option>`).join('')
+    : '<option value="">Cadastre um equipamento primeiro</option>';
+}
+
+// ---- Ordens de Serviço ----
+document.getElementById('btn-add-os').addEventListener('click', async ()=>{
+  const equipamentoId = document.getElementById('os-equip').value;
+  const tipo = document.getElementById('os-tipo').value;
+  const prioridade = document.getElementById('os-prioridade').value;
+  const responsavel = document.getElementById('os-resp').value.trim();
+  const dataPrevista = document.getElementById('os-data').value;
+  const status = document.getElementById('os-status').value;
+  const descricao = document.getElementById('os-desc').value.trim();
+
+  if(!equipamentoId){ showToast('Cadastre e selecione um equipamento.', true); return; }
+  if(!descricao){ showToast('Descreva o serviço ou problema.', true); return; }
+
+  try{
+    await api('/ordens', { method:'POST', body: JSON.stringify({ equipamentoId, tipo, prioridade, responsavel, dataPrevista, status, descricao }) });
+    document.getElementById('os-resp').value='';
+    document.getElementById('os-data').value='';
+    document.getElementById('os-desc').value='';
+    await refreshAll();
+    showToast('Ordem de serviço aberta.');
+  }catch(e){}
+});
+
+async function removeOrdem(id){
+  if(!confirm('Remover esta ordem de serviço?')) return;
+  try{
+    await api('/ordens/'+id, { method:'DELETE' });
+    await refreshAll();
+  }catch(e){}
+}
+
+async function setStatus(id, status){
+  try{
+    await api('/ordens/'+id, { method:'PATCH', body: JSON.stringify({ status }) });
+    await refreshAll();
+  }catch(e){}
+}
+
+function equipLabel(id){
+  const e = equipamentos.find(e=>e.id===id);
+  return e ? `${e.tag} — ${e.nome}` : 'Equipamento removido';
+}
+function labelCrit(c){ return {baixa:'Baixa', media:'Média', alta:'Alta', critica:'Crítica'}[c] || c; }
+function labelStatus(s){ return {aberta:'Aberta', andamento:'Em andamento', concluida:'Concluída'}[s] || s; }
+function labelTipo(t){ return t === 'preventiva' ? 'Preventiva' : 'Corretiva'; }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function isAtrasada(o){
+  if(!o.dataPrevista || o.status === 'concluida') return false;
+  const hoje = new Date().toISOString().slice(0,10);
+  return o.dataPrevista < hoje;
+}
+
+function renderOrdens(){
+  const statusF = document.getElementById('filtro-status').value;
+  const tipoF = document.getElementById('filtro-tipo').value;
+  const buscaF = document.getElementById('filtro-busca').value.toLowerCase();
+
+  let lista = ordens.filter(o=>{
+    if(statusF && o.status !== statusF) return false;
+    if(tipoF && o.tipo !== tipoF) return false;
+    if(buscaF && !(o.descricao.toLowerCase().includes(buscaF) || equipLabel(o.equipamentoId).toLowerCase().includes(buscaF))) return false;
+    return true;
+  }).sort((a,b)=> (a.dataPrevista||'9999').localeCompare(b.dataPrevista||'9999'));
+
+  const container = document.getElementById('os-list');
+  container.innerHTML = '';
+  document.getElementById('os-empty').classList.toggle('hidden', lista.length>0);
+
+  lista.forEach(o=>{
+    const accent = o.prioridade === 'critica' ? 'var(--red)' : o.prioridade === 'alta' ? 'var(--amber)' : o.prioridade === 'media' ? 'var(--blue)' : '#5a5f62';
+    const atrasada = isAtrasada(o);
+    const div = document.createElement('div');
+    div.className = 'os-tag';
+    div.style.setProperty('--accent', accent);
+    div.innerHTML = `
+      <div class="os-tag-head">
+        <span class="os-id">${o.id}</span>
+        <span class="badge ${o.status}">${labelStatus(o.status)}</span>
+      </div>
+      <div class="os-desc">${escapeHtml(o.descricao)}</div>
+      <div class="os-meta">
+        <span class="mono">${escapeHtml(equipLabel(o.equipamentoId))}</span>
+        <span>${labelTipo(o.tipo)}</span>
+        <span class="badge ${o.prioridade}">${labelCrit(o.prioridade)}</span>
+        ${o.dataPrevista ? `<span${atrasada?' style="color:var(--red)"':''}>Prevista: ${o.dataPrevista}${atrasada?' (atrasada)':''}</span>` : ''}
+        ${o.responsavel ? `<span>Resp: ${escapeHtml(o.responsavel)}</span>` : ''}
+      </div>
+      <div class="os-actions">
+        <select class="status-select" data-id="${o.id}" style="width:auto;">
+          <option value="aberta" ${o.status==='aberta'?'selected':''}>Aberta</option>
+          <option value="andamento" ${o.status==='andamento'?'selected':''}>Em andamento</option>
+          <option value="concluida" ${o.status==='concluida'?'selected':''}>Concluída</option>
+        </select>
+        <button class="btn btn-danger btn-sm" data-remove-os="${o.id}">Excluir</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+
+  container.querySelectorAll('.status-select').forEach(s=>s.addEventListener('change', ()=>setStatus(s.dataset.id, s.value)));
+  container.querySelectorAll('[data-remove-os]').forEach(b=>b.addEventListener('click', ()=>removeOrdem(b.dataset.removeOs)));
+}
+
+['filtro-status','filtro-tipo','filtro-busca'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', renderOrdens);
+});
+
+// ---- Dashboard ----
+function renderDashboard(){
+  document.getElementById('st-abertas').textContent = ordens.filter(o=>o.status==='aberta').length;
+  document.getElementById('st-andamento').textContent = ordens.filter(o=>o.status==='andamento').length;
+  document.getElementById('st-atrasadas').textContent = ordens.filter(isAtrasada).length;
+  document.getElementById('st-equip').textContent = equipamentos.length;
+
+  const proximas = ordens.filter(o=>o.status!=='concluida' && o.dataPrevista).sort((a,b)=>a.dataPrevista.localeCompare(b.dataPrevista)).slice(0,5);
+  const dp = document.getElementById('dash-proximas');
+  dp.innerHTML = proximas.length ? `<table><thead><tr><th>OS</th><th>Equipamento</th><th>Data prevista</th><th>Status</th></tr></thead><tbody>
+    ${proximas.map(o=>`<tr><td class="mono">${o.id}</td><td>${escapeHtml(equipLabel(o.equipamentoId))}</td><td>${o.dataPrevista}${isAtrasada(o)?' <span style="color:var(--red)">(atrasada)</span>':''}</td><td><span class="badge ${o.status}">${labelStatus(o.status)}</span></td></tr>`).join('')}
+  </tbody></table>` : '<div class="empty">Nenhuma ordem com data prevista.</div>';
+
+  const criticas = ordens.filter(o=>o.status!=='concluida' && (o.prioridade==='critica'||o.prioridade==='alta'));
+  const dc = document.getElementById('dash-criticas');
+  dc.innerHTML = criticas.length ? `<table><thead><tr><th>OS</th><th>Equipamento</th><th>Prioridade</th><th>Descrição</th></tr></thead><tbody>
+    ${criticas.map(o=>`<tr><td class="mono">${o.id}</td><td>${escapeHtml(equipLabel(o.equipamentoId))}</td><td><span class="badge ${o.prioridade}">${labelCrit(o.prioridade)}</span></td><td>${escapeHtml(o.descricao)}</td></tr>`).join('')}
+  </tbody></table>` : '<div class="empty">Nenhuma ordem crítica ou de alta prioridade em aberto.</div>';
+}
+
+// ---- Preventiva ----
+function renderPreventiva(){
+  const lista = ordens.filter(o=>o.tipo==='preventiva').sort((a,b)=>(a.dataPrevista||'9999').localeCompare(b.dataPrevista||'9999'));
+  const el = document.getElementById('prev-list');
+  document.getElementById('prev-empty').classList.toggle('hidden', lista.length>0);
+  el.innerHTML = lista.length ? `<table><thead><tr><th>OS</th><th>Equipamento</th><th>Data prevista</th><th>Responsável</th><th>Status</th></tr></thead><tbody>
+    ${lista.map(o=>`<tr><td class="mono">${o.id}</td><td>${escapeHtml(equipLabel(o.equipamentoId))}</td><td>${o.dataPrevista||'—'}${isAtrasada(o)?' <span style="color:var(--red)">(atrasada)</span>':''}</td><td>${escapeHtml(o.responsavel||'—')}</td><td><span class="badge ${o.status}">${labelStatus(o.status)}</span></td></tr>`).join('')}
+  </tbody></table>` : '';
+}
+
+async function refreshAll(){
+  try{
+    [equipamentos, ordens] = await Promise.all([ api('/equipamentos'), api('/ordens') ]);
+  }catch(e){ return; }
+  renderEquipamentos();
+  fillEquipSelect();
+  renderOrdens();
+  renderDashboard();
+  renderPreventiva();
+}
+
+refreshAll();
+setInterval(refreshAll, 15000); // mantém sincronizado entre técnicos
+</script>
+</body>
+</html>
