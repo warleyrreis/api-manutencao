@@ -2,7 +2,7 @@
   "name": "gestao-manutencao",
   "version": "1.0.0",
   "description": "Sistema de gestao de manutencao - backend Express com armazenamento em arquivo",
-  "main": "server.js",
+  "main": "index.html",
   "scripts": {
     "start": "node server.js"
   },
