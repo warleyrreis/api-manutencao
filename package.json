@@ -4,7 +4,7 @@
   "description": "Sistema de gestao de manutencao - backend Express com armazenamento em arquivo",
   "main": "server.js",
   "scripts": {
-    "start": "index.html"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.19.2"
